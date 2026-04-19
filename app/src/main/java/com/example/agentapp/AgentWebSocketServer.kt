@@ -201,8 +201,7 @@ class AgentWebSocketServer(
         }
     }
 
-    // Broadcast to all connected clients (useful for live SMS push)
-    fun broadcast(json: String) {
+    fun broadcastToAll(json: String) {
         connectedClients.forEach { client ->
             if (client.isOpen) client.send(json)
         }
