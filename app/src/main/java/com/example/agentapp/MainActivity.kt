@@ -2,7 +2,6 @@ package com.example.agentapp
 
 import android.Manifest
 import android.content.*
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -11,6 +10,7 @@ import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 
 class MainActivity : AppCompatActivity() {
 
@@ -24,16 +24,16 @@ class MainActivity : AppCompatActivity() {
         override fun onReceive(context: Context, intent: Intent) {
             val url = intent.getStringExtra("url") ?: return
             runOnUiThread {
-                tvUrl.text = "Dashboard URL:\nws://$url"
-                tvStatus.text = "Agent running — connect from anywhere!"
+                tvUrl.text = "Dashboard URL:\n$url"
+                tvStatus.text = "Agent running! Connect from anywhere."
             }
         }
     }
 
+    // Only request permissions that are not SMS (SMS handled separately)
     private val requiredPermissions = buildList {
         add(Manifest.permission.READ_CONTACTS)
         add(Manifest.permission.READ_CALL_LOG)
-        add(Manifest.permission.READ_SMS)
         add(Manifest.permission.CAMERA)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             add(Manifest.permission.POST_NOTIFICATIONS)
@@ -42,13 +42,9 @@ class MainActivity : AppCompatActivity() {
 
     private val permLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { results ->
-        val denied = results.filter { !it.value }.keys
-        if (denied.isEmpty()) {
-            doStartService()
-        } else {
-            tvStatus.text = "Permissions denied: ${denied.joinToString { it.substringAfterLast('.') }}\nGo to Settings > Apps > Phone Agent > Permissions"
-        }
+    ) { _ ->
+        // Start service regardless — SMS is optional
+        doStartService()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,15 +61,24 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("agent_prefs", MODE_PRIVATE)
         etNgrokToken.setText(prefs.getString("ngrok_token", ""))
 
+        // Show current status if already running
+        if (AgentService.isRunning) {
+            tvStatus.text = "Agent already running"
+            tvUrl.text = if (AgentService.publicUrl.isNotEmpty())
+                "Dashboard URL:\n${AgentService.publicUrl}"
+            else
+                "Getting tunnel URL..."
+        }
+
         btnStart.setOnClickListener {
             val token = etNgrokToken.text.toString().trim()
             if (token.isEmpty()) {
-                tvStatus.text = "Please enter your ngrok authtoken first!\nGet it free at ngrok.com"
+                tvStatus.text = "Please enter your ngrok authtoken first!\nGet it free at ngrok.com/signup"
                 return@setOnClickListener
             }
             // Save token
             prefs.edit().putString("ngrok_token", token).apply()
-            tvStatus.text = "Requesting permissions..."
+            tvStatus.text = "Starting..."
             permLauncher.launch(requiredPermissions)
         }
 
@@ -83,20 +88,28 @@ class MainActivity : AppCompatActivity() {
             tvUrl.text = ""
         }
 
-        // Show if already running
-        if (AgentService.isRunning) {
-            tvStatus.text = "Agent already running"
-            tvUrl.text = if (AgentService.publicUrl.isNotEmpty())
-                "Dashboard URL:\n${AgentService.publicUrl}" else "Getting tunnel URL..."
+        // Button to manually open app permissions settings
+        findViewById<Button>(R.id.btnPermissions).setOnClickListener {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", packageName, null)
+            }
+            startActivity(intent)
         }
     }
 
     override fun onResume() {
         super.onResume()
+        // Re-check if service is running and update URL
+        if (AgentService.isRunning && AgentService.publicUrl.isNotEmpty()) {
+            tvStatus.text = "Agent running!"
+            tvUrl.text = "Dashboard URL:\n${AgentService.publicUrl}"
+        }
+
         val filter = IntentFilter("NGROK_URL_READY")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(urlReceiver, filter, RECEIVER_NOT_EXPORTED)
         } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
             registerReceiver(urlReceiver, filter)
         }
     }
@@ -107,8 +120,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun doStartService() {
-        tvStatus.text = "Starting agent & tunnel..."
-        tvUrl.text = "Getting ngrok URL — please wait ~10 seconds..."
+        tvStatus.text = "Agent starting... getting ngrok URL (10-20 sec)"
+        tvUrl.text = "Please wait..."
         ContextCompat.startForegroundService(this, Intent(this, AgentService::class.java))
     }
 }
