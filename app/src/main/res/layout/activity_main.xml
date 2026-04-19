@@ -10,7 +10,6 @@
         android:orientation="vertical"
         android:padding="24dp">
 
-        <!-- Title -->
         <TextView
             android:text="Phone Agent"
             android:textSize="26sp"
@@ -39,14 +38,13 @@
             android:layout_height="wrap_content"/>
 
         <TextView
-            android:text="Visit ngrok.com → Sign up free → Dashboard → Your Authtoken → Copy it"
+            android:text="Visit dashboard.ngrok.com → sign up free → Your Authtoken → Copy"
             android:textSize="12sp"
             android:textColor="#888888"
             android:layout_marginBottom="12dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
-        <!-- Token input -->
         <EditText
             android:id="@+id/etNgrokToken"
             android:hint="Paste your ngrok authtoken here"
@@ -62,7 +60,35 @@
 
         <!-- Step 2 -->
         <TextView
-            android:text="Step 2 — Start the agent"
+            android:text="Step 2 — Grant permissions"
+            android:textSize="14sp"
+            android:textColor="#cccccc"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <Button
+            android:id="@+id/btnPermissions"
+            android:text="Open App Permissions Settings"
+            android:backgroundTint="#374151"
+            android:textColor="#ffffff"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="6dp"
+            android:textSize="13sp"/>
+
+        <TextView
+            android:text="In permissions: Allow Contacts, Phone, SMS, Camera"
+            android:textSize="12sp"
+            android:textColor="#888888"
+            android:layout_marginBottom="24dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <!-- Step 3 -->
+        <TextView
+            android:text="Step 3 — Start the agent"
             android:textSize="14sp"
             android:textColor="#cccccc"
             android:textStyle="bold"
@@ -83,7 +109,7 @@
         <Button
             android:id="@+id/btnStop"
             android:text="Stop Agent"
-            android:backgroundTint="#374151"
+            android:backgroundTint="#dc2626"
             android:textColor="#ffffff"
             android:layout_width="match_parent"
             android:layout_height="48dp"
@@ -100,10 +126,9 @@
             android:layout_height="wrap_content">
 
             <TextView
-                android:text="Status"
+                android:text="STATUS"
                 android:textSize="11sp"
                 android:textColor="#6b7280"
-                android:textAllCaps="true"
                 android:letterSpacing="0.1"
                 android:layout_marginBottom="6dp"
                 android:layout_width="wrap_content"
@@ -128,10 +153,9 @@
             android:layout_height="wrap_content">
 
             <TextView
-                android:text="Dashboard URL (use in web dashboard)"
+                android:text="DASHBOARD URL — paste this in web dashboard"
                 android:textSize="11sp"
                 android:textColor="#6b7280"
-                android:textAllCaps="true"
                 android:letterSpacing="0.1"
                 android:layout_marginBottom="6dp"
                 android:layout_width="wrap_content"
@@ -140,30 +164,38 @@
             <TextView
                 android:id="@+id/tvUrl"
                 android:text="—"
-                android:textSize="13sp"
+                android:textSize="14sp"
                 android:textColor="#60a5fa"
                 android:textIsSelectable="true"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
         </LinearLayout>
 
-        <!-- Step 3 info -->
-        <TextView
-            android:text="Step 3 — Open web dashboard"
-            android:textSize="14sp"
-            android:textColor="#cccccc"
-            android:textStyle="bold"
-            android:layout_marginBottom="6dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+        <!-- SMS note -->
+        <LinearLayout
+            android:background="@drawable/card_bg"
+            android:padding="16dp"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
-        <TextView
-            android:text="Open the index.html file from the web-dashboard folder on your laptop/PC. Enter the URL shown above and click Connect."
-            android:textSize="12sp"
-            android:textColor="#888888"
-            android:lineSpacingExtra="4dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            <TextView
+                android:text="SMS NOTE (Android 12+)"
+                android:textSize="11sp"
+                android:textColor="#f59e0b"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="6dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <TextView
+                android:text="To read SMS on Android 12+, go to:\nSettings > Apps > Default Apps > SMS App > select Phone Agent\n\nYou can switch back to your normal SMS app after."
+                android:textSize="12sp"
+                android:textColor="#9ca3af"
+                android:lineSpacingExtra="4dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>
