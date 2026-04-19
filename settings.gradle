@@ -1,0 +1,2 @@
+rootProject.name = "PhoneAgent"
+include ':app'

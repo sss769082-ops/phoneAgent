@@ -1,0 +1,3 @@
+-keep class com.example.agentapp.** { *; }
+-keep class org.java_websocket.** { *; }
+-dontwarn org.java_websocket.**

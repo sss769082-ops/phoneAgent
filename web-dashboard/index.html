@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phone Agent Dashboard</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+body { background: #0f0f0f; color: #e0e0e0; min-height: 100vh; }
+
+/* Header */
+.header { background: #111; border-bottom: 1px solid #222; padding: 16px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.header h1 { font-size: 18px; font-weight: 600; color: #fff; flex: 1; min-width: 120px; }
+.connect-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.connect-bar input { background: #1e1e1e; border: 1px solid #333; color: #fff; padding: 8px 12px; border-radius: 7px; font-size: 13px; width: 280px; outline: none; }
+.connect-bar input:focus { border-color: #2563eb; }
+.btn { padding: 8px 16px; border-radius: 7px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: opacity .15s; }
+.btn:hover { opacity: .85; }
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-danger  { background: #dc2626; color: #fff; }
+.btn-secondary { background: #374151; color: #ddd; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #6b7280; display: inline-block; }
+.status-dot.on { background: #22c55e; }
+#statusText { font-size: 13px; color: #6b7280; }
+
+/* Layout */
+.layout { display: flex; height: calc(100vh - 57px); }
+.sidebar { width: 200px; background: #111; border-right: 1px solid #222; padding: 12px 0; flex-shrink: 0; overflow-y: auto; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 18px; cursor: pointer; font-size: 13px; color: #9ca3af; border-left: 3px solid transparent; transition: all .15s; }
+.nav-item:hover { background: #1a1a1a; color: #fff; }
+.nav-item.active { background: #1e1e2e; color: #60a5fa; border-left-color: #2563eb; }
+.nav-icon { font-size: 15px; width: 18px; text-align: center; }
+.main { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* Panels */
+.panel { display: none; }
+.panel.active { display: block; }
+.panel-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.panel-title { font-size: 16px; font-weight: 600; color: #fff; }
+.badge { background: #1e3a5f; color: #60a5fa; font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+
+/* Table */
+.table-wrap { background: #111; border: 1px solid #222; border-radius: 10px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 10px 14px; background: #161616; color: #6b7280; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #222; }
+td { padding: 10px 14px; border-bottom: 1px solid #1a1a1a; vertical-align: top; word-break: break-word; max-width: 260px; color: #d1d5db; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #151515; }
+.empty { text-align: center; padding: 48px; color: #4b5563; font-size: 14px; }
+
+/* Type badges */
+.type-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.type-incoming { background: #052e16; color: #4ade80; }
+.type-outgoing { background: #1e3a5f; color: #60a5fa; }
+.type-missed   { background: #450a0a; color: #f87171; }
+.type-rejected { background: #431407; color: #fb923c; }
+.type-sent     { background: #1e3a5f; color: #60a5fa; }
+.type-received { background: #052e16; color: #4ade80; }
+
+/* Image panels */
+.img-card { background: #111; border: 1px solid #222; border-radius: 10px; padding: 16px; }
+.img-card img { max-width: 100%; border-radius: 8px; display: block; margin-top: 12px; }
+.img-placeholder { background: #1a1a1a; border: 2px dashed #333; border-radius: 8px; padding: 60px; text-align: center; color: #4b5563; font-size: 14px; margin-top: 12px; }
+
+/* App grid */
+.app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.app-item { background: #1a1a1a; border: 1px solid #222; border-radius: 8px; padding: 12px; cursor: pointer; transition: background .15s; }
+.app-item:hover { background: #222; border-color: #2563eb; }
+.app-name { font-size: 13px; color: #d1d5db; font-weight: 500; margin-bottom: 3px; }
+.app-pkg  { font-size: 11px; color: #4b5563; word-break: break-all; }
+
+/* Log */
+.log-box { background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; color: #6b7280; height: 140px; overflow-y: auto; margin-top: 16px; }
+.log-line { padding: 1px 0; }
+.log-line.ok  { color: #4ade80; }
+.log-line.err { color: #f87171; }
+.log-line.info{ color: #60a5fa; }
+
+/* Search box */
+.search-box { background: #1e1e1e; border: 1px solid #333; color: #fff; padding: 7px 12px; border-radius: 7px; font-size: 13px; outline: none; width: 200px; }
+.search-box:focus { border-color: #2563eb; }
+</style>
+</head>
+<body>
+
+<!-- Header / connection bar -->
+<div class="header">
+  <h1>&#x1F4F1; Phone Agent</h1>
+  <div class="connect-bar">
+    <input id="urlInput" placeholder="ngrok URL e.g. 0.tcp.ngrok.io:12345" />
+    <button class="btn btn-primary" onclick="connect()">Connect</button>
+    <button class="btn btn-danger" onclick="disconnect()">Disconnect</button>
+    <span class="status-dot" id="dot"></span>
+    <span id="statusText">Disconnected</span>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- Sidebar navigation -->
+  <div class="sidebar">
+    <div class="nav-item active" onclick="showPanel('contacts')" id="nav-contacts">
+      <span class="nav-icon">👤</span> Contacts
+    </div>
+    <div class="nav-item" onclick="showPanel('calls')" id="nav-calls">
+      <span class="nav-icon">📞</span> Call log
+    </div>
+    <div class="nav-item" onclick="showPanel('sms')" id="nav-sms">
+      <span class="nav-icon">💬</span> SMS
+    </div>
+    <div class="nav-item" onclick="showPanel('camera')" id="nav-camera">
+      <span class="nav-icon">📷</span> Camera
+    </div>
+    <div class="nav-item" onclick="showPanel('screen')" id="nav-screen">
+      <span class="nav-icon">🖥</span> Screen
+    </div>
+    <div class="nav-item" onclick="showPanel('apps')" id="nav-apps">
+      <span class="nav-icon">📦</span> Apps
+    </div>
+    <div class="nav-item" onclick="showPanel('device')" id="nav-device">
+      <span class="nav-icon">ℹ️</span> Device info
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="main">
+
+    <!-- Contacts -->
+    <div class="panel active" id="panel-contacts">
+      <div class="panel-header">
+        <span class="panel-title">Contacts</span>
+        <span class="badge" id="contacts-count">0</span>
+        <input class="search-box" id="contacts-search" placeholder="Search..." oninput="filterTable('contacts-body', this.value, [0,1])">
+        <button class="btn btn-primary" onclick="send({action:'get_contacts'})">Fetch contacts</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Number</th><th>Type</th></tr></thead>
+          <tbody id="contacts-body"><tr><td class="empty" colspan="3">Click "Fetch contacts" to load</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Calls -->
+    <div class="panel" id="panel-calls">
+      <div class="panel-header">
+        <span class="panel-title">Call log</span>
+        <span class="badge" id="calls-count">0</span>
+        <input class="search-box" id="calls-search" placeholder="Search..." oninput="filterTable('calls-body', this.value, [0,1])">
+        <button class="btn btn-primary" onclick="send({action:'get_calls',limit:100})">Fetch calls</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Number</th><th>Type</th><th>Duration</th><th>Date</th></tr></thead>
+          <tbody id="calls-body"><tr><td class="empty" colspan="5">Click "Fetch calls" to load</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SMS -->
+    <div class="panel" id="panel-sms">
+      <div class="panel-header">
+        <span class="panel-title">SMS Messages</span>
+        <span class="badge" id="sms-count">0</span>
+        <input class="search-box" id="sms-search" placeholder="Search..." oninput="filterTable('sms-body', this.value, [0,1])">
+        <button class="btn btn-primary" onclick="send({action:'get_sms',limit:100})">Fetch SMS</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>From/To</th><th>Message</th><th>Type</th><th>Date</th></tr></thead>
+          <tbody id="sms-body"><tr><td class="empty" colspan="4">Click "Fetch SMS" to load</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Camera -->
+    <div class="panel" id="panel-camera">
+      <div class="panel-header">
+        <span class="panel-title">Camera</span>
+        <button class="btn btn-primary" onclick="takePhoto()">Take photo</button>
+        <button class="btn btn-secondary" onclick="send({action:'get_photo'})">Get last photo</button>
+      </div>
+      <div class="img-card">
+        <div style="font-size:13px;color:#6b7280" id="photo-status">No photo taken yet</div>
+        <div class="img-placeholder" id="photo-placeholder">Photo will appear here</div>
+        <img id="photo-img" style="display:none" alt="Phone camera photo"/>
+      </div>
+    </div>
+
+    <!-- Screen -->
+    <div class="panel" id="panel-screen">
+      <div class="panel-header">
+        <span class="panel-title">Screen capture</span>
+        <button class="btn btn-primary" onclick="captureScreen()">Capture screen</button>
+        <button class="btn btn-secondary" onclick="send({action:'get_screen'})">Get last screenshot</button>
+      </div>
+      <div class="img-card">
+        <div style="font-size:13px;color:#6b7280" id="screen-status">No screenshot yet. Note: first time requires permission on the phone.</div>
+        <div class="img-placeholder" id="screen-placeholder">Screenshot will appear here</div>
+        <img id="screen-img" style="display:none" alt="Phone screenshot"/>
+      </div>
+    </div>
+
+    <!-- Apps -->
+    <div class="panel" id="panel-apps">
+      <div class="panel-header">
+        <span class="panel-title">Installed apps</span>
+        <span class="badge" id="apps-count">0</span>
+        <input class="search-box" id="apps-search" placeholder="Search apps..." oninput="filterApps(this.value)">
+        <button class="btn btn-primary" onclick="send({action:'list_apps'})">Fetch apps</button>
+      </div>
+      <div id="apps-grid" class="app-grid">
+        <div style="color:#4b5563;font-size:14px;padding:32px">Click "Fetch apps" to load installed apps. Click any app to launch it on your phone.</div>
+      </div>
+    </div>
+
+    <!-- Device info -->
+    <div class="panel" id="panel-device">
+      <div class="panel-header">
+        <span class="panel-title">Device info</span>
+        <button class="btn btn-primary" onclick="send({action:'get_device_info'})">Refresh</button>
+      </div>
+      <div id="device-info" style="background:#111;border:1px solid #222;border-radius:10px;padding:20px;font-size:14px;color:#d1d5db;line-height:2">
+        Click "Refresh" to load device information.
+      </div>
+    </div>
+
+    <!-- Log (always visible at bottom) -->
+    <div style="margin-top:24px">
+      <div style="font-size:11px;color:#4b5563;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Activity log</div>
+      <div class="log-box" id="log"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let ws = null;
+let allApps = [];
+
+// ── Connection ──────────────────────────────────────────────────────
+
+function connect() {
+  const raw = document.getElementById('urlInput').value.trim();
+  if (!raw) { alert('Enter the ngrok URL from your phone'); return; }
+
+  // Accept formats: "0.tcp.ngrok.io:12345" or "ws://..." or just host:port
+  const url = raw.startsWith('ws') ? raw : `ws://${raw}`;
+
+  if (ws) ws.close();
+  setStatus('Connecting...', false);
+  log(`Connecting to ${url}`, 'info');
+
+  ws = new WebSocket(url);
+  ws.onopen    = () => { setStatus('Connected', true); log('Connected to phone agent', 'ok'); };
+  ws.onclose   = () => { setStatus('Disconnected', false); log('Disconnected', 'err'); };
+  ws.onerror   = () => { setStatus('Connection error', false); log('WebSocket error — check URL and that agent is running', 'err'); };
+  ws.onmessage = (e) => handleMessage(JSON.parse(e.data));
+}
+
+function disconnect() {
+  if (ws) ws.close();
+}
+
+function send(obj) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    log('Not connected. Click Connect first.', 'err');
+    return;
+  }
+  ws.send(JSON.stringify(obj));
+  log(`Sent: ${obj.action}`, 'info');
+}
+
+function setStatus(text, connected) {
+  document.getElementById('statusText').textContent = text;
+  document.getElementById('dot').className = 'status-dot' + (connected ? ' on' : '');
+}
+
+// ── Message handling ─────────────────────────────────────────────────
+
+function handleMessage(msg) {
+  log(`Received: ${msg.type}${msg.count !== undefined ? ' ('+msg.count+' items)' : ''}`, 'ok');
+
+  switch (msg.type) {
+    case 'welcome':     log(msg.message, 'info'); break;
+    case 'contacts':    renderContacts(msg.data); break;
+    case 'calls':       renderCalls(msg.data); break;
+    case 'sms':         renderSMS(msg.data); break;
+    case 'photo':       renderPhoto(msg.data); break;
+    case 'screen':      renderScreen(msg.data); break;
+    case 'apps':        renderApps(msg.data); break;
+    case 'device_info': renderDeviceInfo(msg); break;
+    case 'status':      log('Phone: ' + msg.message, 'info'); break;
+    case 'error':       log('Error: ' + msg.message, 'err'); break;
+    case 'pong':        log('Ping OK', 'ok'); break;
+  }
+}
+
+// ── Renderers ────────────────────────────────────────────────────────
+
+function renderContacts(data) {
+  document.getElementById('contacts-count').textContent = data.length;
+  const tbody = document.getElementById('contacts-body');
+  if (!data.length) { tbody.innerHTML = '<tr><td class="empty" colspan="3">No contacts found</td></tr>'; return; }
+  tbody.innerHTML = data.map(c => `
+    <tr>
+      <td>${esc(c.name)}</td>
+      <td>${esc(c.number)}</td>
+      <td><span class="type-badge type-received">${esc(c.type)}</span></td>
+    </tr>`).join('');
+}
+
+function renderCalls(data) {
+  document.getElementById('calls-count').textContent = data.length;
+  const tbody = document.getElementById('calls-body');
+  if (!data.length) { tbody.innerHTML = '<tr><td class="empty" colspan="5">No calls found</td></tr>'; return; }
+  tbody.innerHTML = data.map(c => {
+    const dur = c.duration_sec > 0 ? formatDuration(c.duration_sec) : '—';
+    return `<tr>
+      <td>${esc(c.name)}</td>
+      <td>${esc(c.number)}</td>
+      <td><span class="type-badge type-${c.type}">${c.type}</span></td>
+      <td>${dur}</td>
+      <td style="color:#6b7280">${esc(c.date_readable)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderSMS(data) {
+  document.getElementById('sms-count').textContent = data.length;
+  const tbody = document.getElementById('sms-body');
+  if (!data.length) { tbody.innerHTML = '<tr><td class="empty" colspan="4">No SMS found</td></tr>'; return; }
+  tbody.innerHTML = data.map(s => `
+    <tr>
+      <td>${esc(s.address)}</td>
+      <td style="max-width:300px">${esc(s.body)}</td>
+      <td><span class="type-badge type-${s.type}">${s.type}</span></td>
+      <td style="color:#6b7280">${esc(s.date_readable)}</td>
+    </tr>`).join('');
+}
+
+function renderPhoto(b64) {
+  const img = document.getElementById('photo-img');
+  img.src = 'data:image/jpeg;base64,' + b64;
+  img.style.display = 'block';
+  document.getElementById('photo-placeholder').style.display = 'none';
+  document.getElementById('photo-status').textContent = 'Photo received — ' + new Date().toLocaleTimeString();
+}
+
+function renderScreen(b64) {
+  const img = document.getElementById('screen-img');
+  img.src = 'data:image/jpeg;base64,' + b64;
+  img.style.display = 'block';
+  document.getElementById('screen-placeholder').style.display = 'none';
+  document.getElementById('screen-status').textContent = 'Screenshot received — ' + new Date().toLocaleTimeString();
+}
+
+function renderApps(data) {
+  allApps = data;
+  document.getElementById('apps-count').textContent = data.length;
+  renderAppsGrid(data);
+}
+
+function renderAppsGrid(apps) {
+  const grid = document.getElementById('apps-grid');
+  if (!apps.length) { grid.innerHTML = '<div style="color:#4b5563;padding:32px">No apps found</div>'; return; }
+  grid.innerHTML = apps.map(a => `
+    <div class="app-item" onclick="launchApp('${esc(a.package)}')">
+      <div class="app-name">${esc(a.name)}</div>
+      <div class="app-pkg">${esc(a.package)}</div>
+    </div>`).join('');
+}
+
+function renderDeviceInfo(info) {
+  document.getElementById('device-info').innerHTML = `
+    <div style="display:grid;grid-template-columns:160px 1fr;row-gap:10px">
+      <span style="color:#6b7280">Manufacturer</span><span>${esc(info.manufacturer)}</span>
+      <span style="color:#6b7280">Model</span><span>${esc(info.model)}</span>
+      <span style="color:#6b7280">Android version</span><span>${esc(info.android_version)}</span>
+      <span style="color:#6b7280">SDK level</span><span>${info.sdk}</span>
+      <span style="color:#6b7280">Uptime</span><span>${formatDuration(Math.floor(info.uptime_ms / 1000))}</span>
+    </div>`;
+}
+
+// ── Actions ──────────────────────────────────────────────────────────
+
+function takePhoto() {
+  send({ action: 'take_photo' });
+  document.getElementById('photo-status').textContent = 'Taking photo... call "Get last photo" in 3 seconds';
+  setTimeout(() => send({ action: 'get_photo' }), 4000);
+}
+
+function captureScreen() {
+  send({ action: 'capture_screen' });
+  document.getElementById('screen-status').textContent = 'Capturing screen... (accept permission on phone if asked)';
+  setTimeout(() => send({ action: 'get_screen' }), 4000);
+}
+
+function launchApp(pkg) {
+  if (confirm(`Launch "${pkg}" on your phone?`)) {
+    send({ action: 'launch_app', package: pkg });
+  }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────
+
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+}
+
+function filterTable(tbodyId, query, cols) {
+  const q = query.toLowerCase();
+  const rows = document.getElementById(tbodyId).querySelectorAll('tr');
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    const match = cols.some(i => cells[i]?.textContent.toLowerCase().includes(q));
+    row.style.display = (!q || match) ? '' : 'none';
+  });
+}
+
+function filterApps(q) {
+  const filtered = q ? allApps.filter(a =>
+    a.name.toLowerCase().includes(q.toLowerCase()) ||
+    a.package.toLowerCase().includes(q.toLowerCase())
+  ) : allApps;
+  renderAppsGrid(filtered);
+}
+
+function formatDuration(sec) {
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return `${m}m ${s}s`;
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function log(msg, type = '') {
+  const box = document.getElementById('log');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + type;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+  // Keep max 100 lines
+  while (box.children.length > 100) box.removeChild(box.firstChild);
+}
+</script>
+</body>
+</html>
