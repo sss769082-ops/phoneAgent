@@ -28,29 +28,55 @@ class AgentService : Service() {
         startForeground(NOTIF_ID, buildNotification("Starting agent..."))
 
         collector = DataCollector(this)
-
-        // Start WebSocket server on port 8080
         wsServer = AgentWebSocketServer(8080, collector, this)
         wsServer.start()
 
-        // Start ngrok tunnel
         ngrokManager = NgrokManager(this)
+
         scope.launch {
             try {
-                val url = ngrokManager.startTunnel(8080)
-                publicUrl = url
-                updateNotification(url)
-                // Notify MainActivity
-                sendBroadcast(Intent("NGROK_URL_READY").putExtra("url", url))
+                val result = ngrokManager.startTunnel(8080)
+
+                // Parse result - format is "PUBLIC:url|LOCAL:ip" or "LOCAL:ip"
+                val displayUrl: String
+                val broadcastUrl: String
+
+                when {
+                    result.startsWith("PUBLIC:") && result.contains("|LOCAL:") -> {
+                        val parts = result.split("|")
+                        val pub = parts[0].removePrefix("PUBLIC:")
+                        val local = parts[1].removePrefix("LOCAL:")
+                        displayUrl = "Public: $pub\nLocal: $local"
+                        broadcastUrl = pub
+                        publicUrl = pub
+                    }
+                    result.startsWith("LOCAL:") -> {
+                        val local = result.removePrefix("LOCAL:")
+                        displayUrl = "WiFi only: $local\n(same network as phone)"
+                        broadcastUrl = local
+                        publicUrl = local
+                    }
+                    else -> {
+                        displayUrl = result
+                        broadcastUrl = result
+                        publicUrl = result
+                    }
+                }
+
+                updateNotification(displayUrl)
+                sendBroadcast(Intent("NGROK_URL_READY").putExtra("url", broadcastUrl).putExtra("display", displayUrl))
+
             } catch (e: Exception) {
-                updateNotification("Tunnel error: ${e.message}")
-                sendBroadcast(Intent("NGROK_URL_READY").putExtra("url", "ERROR: ${e.message}"))
+                val errMsg = e.message ?: "Unknown error"
+                publicUrl = "Error: $errMsg"
+                updateNotification("Error: $errMsg")
+                sendBroadcast(Intent("NGROK_URL_READY").putExtra("url", "ERROR").putExtra("display", "Error: $errMsg"))
             }
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return START_STICKY  // Restart if killed
+        return START_STICKY
     }
 
     override fun onDestroy() {
@@ -68,9 +94,7 @@ class AgentService : Service() {
         val channel = NotificationChannel(
             CHANNEL_ID, "Phone Agent",
             NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            description = "Phone Agent background service"
-        }
+        ).apply { description = "Phone Agent background service" }
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
@@ -83,6 +107,7 @@ class AgentService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Phone Agent Active")
             .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setContentIntent(openIntent)
             .setOngoing(true)
@@ -90,7 +115,7 @@ class AgentService : Service() {
     }
 
     fun updateNotification(text: String) {
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.notify(NOTIF_ID, buildNotification(text))
+        getSystemService(NotificationManager::class.java)
+            .notify(NOTIF_ID, buildNotification(text))
     }
 }
